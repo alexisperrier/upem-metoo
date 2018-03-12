@@ -1,1 +1,7 @@
+*/.DS_Store
 .DS_store
+*.zip
+*.tar.gz
+*.json
+*.log
+.json.gz

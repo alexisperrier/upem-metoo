@@ -5,7 +5,7 @@ import json
 
 ####
 VENDOR="lisis"
-VENDOR_AUTH="55aYKKiL6DTWzhvArKGBMP7QdEU"
+# VENDOR_AUTH=""
 
 ####
 # Define the query you want to run.

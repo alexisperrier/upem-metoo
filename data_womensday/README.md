@@ -12,10 +12,10 @@ will include tweets with hashtags #internationalwomensday2018 and #International
 * 8march
 * FGM
 * SexSelection
-* [added] WomensDay
-* [added] SexDetermination
-* [added] IWD2018
-* [added] March8
+* WomensDay
+* SexDetermination
+* IWD2018
+* March8
 * 8mars
 
 # Hashtags only (case sensitive)
@@ -27,9 +27,6 @@ will include tweets with hashtags #internationalwomensday2018 and #International
 * JournéeDesDroitsDesFemmes
 * Weltfrauentag
 * DíaInternacionalDeLaMujer
-
-Hashtags linked to Global Agenda:
-
 
 #GlobalGoals
 #HealthForAll
@@ -55,7 +52,6 @@ Female Genital Cutting:
 #FCvsFGM
 #AllAboutFC
 
-
 #GBSS
 #SexSelection
 #sexselectiveabortion
@@ -66,6 +62,7 @@ Female Genital Cutting:
 #daughterdeficit
 
 
+#FCvsFGM
 
 
 

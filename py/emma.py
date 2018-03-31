@@ -18,7 +18,6 @@ VENDOR_DATASTREAM_AUTH = os.environ['VENDOR_DATASTREAM_AUTH']
 CONTENT_URL = "http://{0}.elasticsearch.datastreamer.io/content*/_search?scroll=5m&pretty=true".format(VENDOR_DATASTREAM)
 SCROLL_URL  = "http://{0}.elasticsearch.datastreamer.io/_search/scroll?scroll=5m&pretty=true".format(VENDOR_DATASTREAM_AUTH)
 
-
 def header():
     return { 'X-vendor': VENDOR_DATASTREAM, 'X-vendor-auth': VENDOR_DATASTREAM_AUTH }
 

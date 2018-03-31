@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 '''
-# case insensitive search on keyword
-python metoo.py --api all --keyword 8march --since_date 2018-03-01
-# case sensitive search on #hashtag
-python metoo.py --api all --hashtag 8march --since_date 2018-03-01
+python search.py --api all  --since_date 2017-10-01 --zipupload True
 '''
 
 import requests
@@ -18,8 +15,8 @@ import argparse
 # ----------------------------------------------------------------------------------------------
 #  Params
 # ----------------------------------------------------------------------------------------------
-TITLE       = 'womensday'
-BUCKET       = 'upem-iwd2018'
+TITLE       = 'wakanda'
+BUCKET       = 'upem-wakanda'
 DATA_FOLDER  = '/Users/alexis/amcp/upem/metoo/data_{}/'.format(TITLE)
 KEYWORD_FILE = "{}{}.csv".format(DATA_FOLDER,TITLE )
 # STEP         = datetime.timedelta(days =7)
@@ -54,9 +51,9 @@ print(UNTIL_DATE)
 #  Logger
 # ----------------------------------------------------------------------------------------------
 
-logger = logging.getLogger(TITLE)
-hdlr = logging.FileHandler('/Users/alexis/amcp/upem/metoo/log/{}.log'.format(TITLE))
-formatter = logging.Formatter('%(asctime)s %(levelname)s {} %(message)s '.format(API))
+logger      = logging.getLogger(TITLE)
+hdlr        = logging.FileHandler('/Users/alexis/amcp/upem/metoo/log/{}.log'.format(TITLE))
+formatter   = logging.Formatter('%(asctime)s %(levelname)s {} %(message)s '.format(API))
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
@@ -84,7 +81,7 @@ def json_query(start_date, end_date, word, search_mode):
                 { "term": {"lang": "en"} },
     To restrict to Hastags remove :
                 { "term": { "main": "metoo" } },
-    Size: Max number of t   weets per request, saved in file
+    Size: Max number of tweets per request, saved in file
     Date are formatted  strftime(%Y-%m-%dT%H:%M:%SZ)
     '''
     if search_mode == 'hashtag':

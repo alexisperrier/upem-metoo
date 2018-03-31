@@ -1,47 +1,59 @@
-def flattenjson( b, delim ):
-    val = {}
-    for i in b.keys():
-        if isinstance( b[i], dict ):
-            get = flattenjson( b[i], delim )
-            for j in get.keys():
-                val[ i + delim + j ] = get[j]
-        else:
-            val[i] = b[i]
+'''
+Given a folder with zipped json files extracted from spinn3r, the script
 
-    return val
+* unzip the files into ./tmp/
+* converts the json to csv files using pandas
+* zips the csv files
+* upload the files to a google storage bucket
 
 
-# flattenjson( {
-#     "pk": 22,
-#     "model": "auth.permission",
-#     "fields": {
-#       "codename": "add_message",
-#       "name": "Can add message",
-#       "content_type": 8
-#     }
-#   }, "__" )
-# is
-#
-# {
-#     "pk": 22,
-#     "model": "auth.permission',
-#     "fields__codename": "add_message",
-#     "fields__name": "Can add message",
-#     "fields__content_type": 8
-# }
+'''
+import json
+import pandas as pd
+import datetime
+from dateutil import parser
+import os
+import glob
+from tqdm import tqdm
 
-# After applying this function to each dict in the input array of JSON objects:
+BUCKET          = 'upem-wakanda'
+source_folder   = '/Users/alexis/amcp/upem/metoo/data_wakanda/'
+tmp_folder      = '/Users/alexis/amcp/upem/metoo/data_wakanda/tmp/'
+csv_folder      = '/Users/alexis/amcp/upem/metoo/data_wakanda/csv/'
 
-input = map( lambda x: flattenjson( x, "__" ), input )
-# and finding the relevant column names:
+if __name__== '__main__':
 
-columns = [ x for row in input for x in row.keys() ]
-columns = list( set( columns ) )
-it's not hard to run this through the csv module:
+    for zip_file in glob.glob(source_folder + '*.zip'):
 
-with open( fname, 'wb' ) as out_file:
-    csv_w = csv.writer( out_file )
-    csv_w.writerow( columns )
+        print("processing " + zip_file)
 
-    for i_r in input:
-        csv_w.writerow( map( lambda x: i_r.get( x, "" ), columns ) )
+        # Unzip
+        cmd = "unzip {0} -d {1} ".format(zip_file, tmp_folder)
+        os.system(cmd)
+        json_files = glob.glob(tmp_folder + '*.json')
+        print(" {} json files".format(len(json_files)))
+
+        for json_file in tqdm(json_files):
+            # convert to csv
+            df  = pd.read_json(json_file)
+            dd  = pd.DataFrame.from_dict(list(df['_source'].values))
+
+            csv_file = csv_folder + json_file.split('/')[-1].split('.')[0] + '.csv'
+            dd.to_csv(csv_file)
+
+        print("compressing")
+        # compress
+        csvzip_filename    = zip_file.split('/')[-1].split('.')[0] + "_csv.zip"
+        cmd = "zip -r -j {0} {1}".format(csvzip_filename,csv_folder + "*.csv")
+        os.system(cmd)
+        # send to google storage
+        print("upload to {}".format(BUCKET))
+
+        # cmd = "gsutil cp  {} gs://{}/".format(csvzip_filename, BUCKET)
+        # os.system(cmd)
+        # delete json  and csv files
+        print("delete tmp/ folder")
+        cmd = "rm  {}".format(csv_folder + "*.csv")
+        os.system(cmd)
+        cmd = "rm  {}".format(tmp_folder + "*.json")
+        os.system(cmd)

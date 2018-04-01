@@ -16,13 +16,20 @@ import os
 import glob
 from tqdm import tqdm
 
-BUCKET          = 'upem-wakanda'
-source_folder   = '/Users/alexis/amcp/upem/metoo/data_wakanda/'
-tmp_folder      = '/Users/alexis/amcp/upem/metoo/data_wakanda/tmp/'
-csv_folder      = '/Users/alexis/amcp/upem/metoo/data_wakanda/csv/'
+name            = 'metoo'
+
+path            = '/Users/alexis/amcp/upem/metoo/'
+BUCKET          = 'upem-{}'.format(name)
+source_folder   = '/Users/alexis/amcp/upem/metoo/data_{}/'.format(name)
+tmp_folder      = source_folder + 'tmp/'
+csv_folder      = source_folder + 'csv/'
 
 if __name__== '__main__':
 
+    if not os.path.exists(csv_folder):
+        os.makedirs(csv_folder)
+
+    bucket_urls = []
     for zip_file in glob.glob(source_folder + '*.zip'):
 
         print("processing " + zip_file)
@@ -49,11 +56,17 @@ if __name__== '__main__':
         # send to google storage
         print("upload to {}".format(BUCKET))
 
-        # cmd = "gsutil cp  {} gs://{}/".format(csvzip_filename, BUCKET)
-        # os.system(cmd)
+        cmd = "gsutil cp  {} gs://{}/csv/".format(csvzip_filename, BUCKET)
+        os.system(cmd)
+        cmd = "gsutil acl ch -u AllUsers:R gs://{}/csv/{}".format(BUCKET, csvzip_filename)
+        os.system(cmd)
+        bucket_urls.append("https://storage.googleapis.com/{}/csv/{}".format(BUCKET, csvzip_filename))
         # delete json  and csv files
-        print("delete tmp/ folder")
+        print("delete tmp/ and csv/ folders")
         cmd = "rm  {}".format(csv_folder + "*.csv")
         os.system(cmd)
         cmd = "rm  {}".format(tmp_folder + "*.json")
         os.system(cmd)
+        print("="*20)
+        for url in bucket_urls:
+            print(url)

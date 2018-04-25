@@ -16,7 +16,7 @@ import os
 import glob
 from tqdm import tqdm
 
-name            = 'metoo'
+name            = 'iwd2018'
 
 path            = '/Users/alexis/amcp/upem/metoo/'
 BUCKET          = 'upem-{}'.format(name)

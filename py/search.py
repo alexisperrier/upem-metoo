@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 '''
-python search.py --api all  --since_date 2017-10-01 --zipupload True
+python search.py --envt local --api all  --since_date 2016-10-01 --zipupload True
 '''
 
 import requests
@@ -15,29 +15,22 @@ import argparse
 # ----------------------------------------------------------------------------------------------
 #  Params
 # ----------------------------------------------------------------------------------------------
-TITLE       = 'wakanda'
-BUCKET       = 'upem-wakanda'
-DATA_FOLDER  = '/Users/alexis/amcp/upem/metoo/data_{}/'.format(TITLE)
-KEYWORD_FILE = "{}{}.csv".format(DATA_FOLDER,TITLE )
-# STEP         = datetime.timedelta(days =7)
-print(TITLE)
-print(BUCKET)
-print(DATA_FOLDER)
-print(KEYWORD_FILE)
-# STEP = datetime.timedelta(hours =6)
-# STEP = datetime.timedelta(minutes =30)
+TITLE        = 'refugees'
+BUCKET       = 'dmi-metapedia/twitter/'
 
 prsr = argparse.ArgumentParser()
 prsr.add_argument('--api', help='all, hot, warm, cold', default="hot")
 prsr.add_argument('--zipupload', help='Set to True to zip, upload to google storage and delete original json data', default=False)
+prsr.add_argument('--envt', help='envt: local or sparrow', default="sparrow")
 prsr.add_argument('--since_date', nargs = '?', const="2017-10-01", default="2017-10-01 00:00:00",
                     help='Since date',
                     type=str)
 args = prsr.parse_args()
 
 
-API        = prsr.parse_args().api
-ZIPUPLOAD  = prsr.parse_args().zipupload
+API         = prsr.parse_args().api
+ZIPUPLOAD   = prsr.parse_args().zipupload
+ENVT        = prsr.parse_args().envt
 SINCE_DATE  = prsr.parse_args().since_date
 SINCE_DATE  = parser.parse(SINCE_DATE)
 # UNTIL_DATE  = parser.parse("2017-10-31 00:00:00")
@@ -46,6 +39,23 @@ print(API)
 print(ZIPUPLOAD)
 print(SINCE_DATE)
 print(UNTIL_DATE)
+
+
+if ENVT == 'sparrow':
+    DATA_FOLDER = '/home/alexis/amcp/upemdmi/metoo/data_{}/'.format(TITLE)
+elif (ENVT == 'local'):
+    DATA_FOLDER   = '/Users/alexis/amcp/upem/metoo/data_{}/'.format(TITLE)
+else:
+    DATA_FOLDER   = './'
+
+KEYWORD_FILE = "{}{}.csv".format(DATA_FOLDER,TITLE )
+# STEP         = datetime.timedelta(days =7)
+print(TITLE)
+print(BUCKET)
+print(DATA_FOLDER)
+print(KEYWORD_FILE)
+# STEP = datetime.timedelta(hours =6)
+
 
 # ----------------------------------------------------------------------------------------------
 #  Logger
@@ -75,7 +85,7 @@ SCROLL_URL  = "http://{0}.elasticsearch.datastreamer.io/_search/scroll?scroll=5m
 def header():
     return { 'X-vendor': VENDOR_DATASTREAM, 'X-vendor-auth': VENDOR_DATASTREAM_AUTH }
 
-def json_query(start_date, end_date, word, search_mode):
+def json_query(start_date, end_date, word, search_mode, lang = None):
     '''
     To restrict to English add:
                 { "term": {"lang": "en"} },
@@ -84,6 +94,14 @@ def json_query(start_date, end_date, word, search_mode):
     Size: Max number of tweets per request, saved in file
     Date are formatted  strftime(%Y-%m-%dT%H:%M:%SZ)
     '''
+
+    if lang:
+        lang_str = '{ "term": {"lang": "{}"} },'.format(lang)
+    else:
+        lang_str = ''
+
+
+
     if search_mode == 'hashtag':
         return """
 {
@@ -93,6 +111,7 @@ def json_query(start_date, end_date, word, search_mode):
           "bool": {
             "must": [
                 { "term":  {"domain": "twitter.com"} },
+                %s
                 { "range": { "published": { "gte": "%s", "lt": "%s", "format": "date_time_no_millis" } } }
             ],
             "should": [
@@ -102,7 +121,7 @@ def json_query(start_date, end_date, word, search_mode):
           }
         }
 }
-""" % (start_date, end_date, word)
+""" % (lang_str, start_date, end_date, word)
 
     if search_mode == 'keyword':
         return """
@@ -113,6 +132,7 @@ def json_query(start_date, end_date, word, search_mode):
           "bool": {
             "must": [
                 { "term":  {"domain": "twitter.com"} },
+                %s
                 { "range": { "published": { "gte": "%s", "lt": "%s", "format": "date_time_no_millis" } } }
             ],
             "should": [
@@ -123,7 +143,7 @@ def json_query(start_date, end_date, word, search_mode):
           }
         }
 }
-""" % (start_date, end_date, word, word)
+""" % (lang_str, start_date, end_date, word, word)
 
 def inspect():
     if (len(data['hits']['hits']) > 0):

@@ -47,7 +47,7 @@ print(UNTIL_DATE)
 
 
 if ENVT == 'sparrow':
-    DATA_FOLDER = '/home/alexis/amcp/upemdmi/metoo/data_{}/'.format(TITLE)
+    DATA_FOLDER = '/home/alexis/amcp/upem-metoo/data_{}/'.format(TITLE)
 elif (ENVT == 'local'):
     DATA_FOLDER   = '/Users/alexis/amcp/upem/metoo/data_{}/'.format(TITLE)
 else:

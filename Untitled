@@ -1,0 +1,18 @@
+query = '{  \
+    "size": 10000,\
+    "query":\
+        {\
+          "bool": {\
+            "must": [\
+                { "term":  {"domain": "twitter.com"} },\
+                { "term":  {"lang": "en"} },\
+                { "range": { "published": { "gte": "2018-01-01T00:00:00Z", "lt": "2018-01-02T00:00:00Z", "format": "date_time_no_millis" } } }\
+            ],\
+            "should": [\
+                { "term": { "tags": "migrants" }   },\
+                { "term": { "main": "migrants" }   }\
+            ],\
+            "minimum_should_match": 1\
+          }\
+        }\
+}'

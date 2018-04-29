@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 '''
-python search.py --envt local --api all  --since_date 2016-10-01 --zipupload True
+python search.py --envt local --api all  --since_date 2018-01-01  --since_date 2018-04-25  --zipupload True
 '''
 
 import requests
 import json
+import numpy as np
 import pandas as pd
 import datetime
 from dateutil import parser
@@ -25,6 +26,7 @@ prsr.add_argument('--envt', help='envt: local or sparrow', default="sparrow")
 prsr.add_argument('--since_date', nargs = '?', const="2017-10-01", default="2017-10-01 00:00:00",
                     help='Since date',
                     type=str)
+prsr.add_argument('--until_date', help='Until date', type=str)
 args = prsr.parse_args()
 
 
@@ -33,8 +35,10 @@ ZIPUPLOAD   = prsr.parse_args().zipupload
 ENVT        = prsr.parse_args().envt
 SINCE_DATE  = prsr.parse_args().since_date
 SINCE_DATE  = parser.parse(SINCE_DATE)
+UNTIL_DATE  = prsr.parse_args().until_date
+UNTIL_DATE  = parser.parse(UNTIL_DATE)
 # UNTIL_DATE  = parser.parse("2017-10-31 00:00:00")
-UNTIL_DATE  = datetime.datetime.now()
+# UNTIL_DATE  = datetime.datetime.now()
 print(API)
 print(ZIPUPLOAD)
 print(SINCE_DATE)
@@ -95,10 +99,10 @@ def json_query(start_date, end_date, word, search_mode, lang = None):
     Date are formatted  strftime(%Y-%m-%dT%H:%M:%SZ)
     '''
 
-    if lang:
-        lang_str = '{ "term": {"lang": "{}"} },'.format(lang)
-    else:
+    if lang == 'any':
         lang_str = ''
+    else:
+        lang_str = '{ "term":  {"lang": "%s"} },' % lang
 
 
 
@@ -151,9 +155,10 @@ def inspect():
         print("---- {}) hit_count {}".format(page_count, hit_count))
         print("[first:] {} \n[last:] {}".format(tweets[0], tweets[-1]  ))
 
-def to_file(word, start_date, page_count, hit_count):
-    filename    = DATA_FOLDER + "{0}_{1}_{2}_{3}_{4}.json".format(
+def to_file(word, lang, start_date, page_count, hit_count):
+    filename    = DATA_FOLDER + "{0}_{1}_{2}_{3}_{4}_{5}.json".format(
         word,
+        lang,
         API,
         start_date.strftime('%Y_%m_%d_%H%M'),
         str(page_count).zfill(3),
@@ -174,16 +179,17 @@ if __name__== '__main__':
     for i,d in df.iterrows():
         word = d.Keyword
         search_mode = d.nature
-        step = datetime.timedelta(days = d.step)
+        lang = d.lang
+        step = datetime.timedelta(days = int(d.step))
 
         print("--"*30)
-        print("[{}] {} {}: ".format(search_mode, word,step))
+        print("{} {} **{}** {}: ".format(search_mode, lang, word,step))
         logger.info("--"*30)
-        logger.info("[{}] {} {}: ".format(search_mode, word,step))
+        logger.info("{} {} **{}** {}: ".format(search_mode, lang, word,step))
         logger.info( json_query(
                         SINCE_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         UNTIL_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                        word, search_mode
+                        word, search_mode, lang
                     )
                 )
         logger.info(" ")
@@ -200,7 +206,7 @@ if __name__== '__main__':
             query = json_query(
                 start_date.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 end_date.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                word, search_mode
+                word, search_mode, lang
             )
 
             # Get the data
@@ -215,7 +221,7 @@ if __name__== '__main__':
 
             if hit_count > 0:
                 # save to filename
-                to_file(word, start_date, page_count, hit_count)
+                to_file(word, lang, start_date, page_count, hit_count)
                 inspect()
 
             # ----------------------------------------------------------------------
@@ -230,37 +236,42 @@ if __name__== '__main__':
                 response    = requests.post( SCROLL_URL, headers=header(), data=scroll_id )
                 try:
                     data        = json.loads(response.content)
+                    hit_count   = len(data['hits']['hits'])
+                    scroll_id   = data["_scroll_id"]
+                    if hit_count > 0:
+                        to_file(word, lang, start_date, page_count, hit_count)
+                        inspect()
                 except:
                     logger.error(response.content)
-                    raise
+                    print("==="*20)
+                    print("ERROR NOT RAISED")
+                    print("==="*20)
+                    # raise
 
-                hit_count   = len(data['hits']['hits'])
-                scroll_id   = data["_scroll_id"]
-                if hit_count > 0:
-                    to_file(word, start_date, page_count, hit_count)
-                    inspect()
             start_date = end_date
 
         # ----------------------------------------------------------------------
         # Compress files
         # ----------------------------------------------------------------------
         if ZIPUPLOAD:
-            zip_filename    = "{0}{1}_{2}_{3}_{4}_to_{5}.zip".format(
+            zip_filename    = "{0}{1}_{2}_{3}_{4}_{5}_to_{6}.zip".format(
                 DATA_FOLDER,
                 word,
+                lang,
                 search_mode,
                 API,
                 SINCE_DATE.strftime('%Y%m%d'),
                 UNTIL_DATE.strftime('%Y%m%d'),
             )
             data_files = "{0}{1}*.json".format(DATA_FOLDER,word)
-            print("compressing and uploading to google")
+            print("compressing and (uploading to google: paused)")
             # compress
             cmd = "zip -r -j {0} {1}".format(zip_filename,data_files)
             os.system(cmd)
             # send to google storage
-            cmd = "gsutil cp  {} gs://{}/".format(zip_filename, BUCKET)
-            os.system(cmd)
+            # cmd = "gsutil cp  {} gs://{}/".format(zip_filename, BUCKET)
+            # os.system(cmd)
             # delete original json files
             cmd = "rm  {}".format(data_files)
+            print("delete json files: {}".format(cmd))
             os.system(cmd)

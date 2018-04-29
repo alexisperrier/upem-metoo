@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
-python search.py --envt sparrow --api all  --since_date 2018-01-01  --since_date 2018-04-25  --zipupload True
+python search.py --envt sparrow --api all  --since_date 2018-01-01  --until_date 2018-04-25  --zipupload True
+%run search.py --envt sparrow --api all  --since_date 2018-01-01  --until_date 2018-04-25  --zipupload True
 '''
 
 import requests
@@ -17,7 +18,7 @@ import argparse
 #  Params
 # ----------------------------------------------------------------------------------------------
 TITLE        = 'refugees'
-BUCKET       = 'dmi-metapedia/twitter/'
+BUCKET       = 'dmi2018/twitter/'
 
 prsr = argparse.ArgumentParser()
 prsr.add_argument('--api', help='all, hot, warm, cold', default="hot")
@@ -66,7 +67,7 @@ print(KEYWORD_FILE)
 # ----------------------------------------------------------------------------------------------
 
 logger      = logging.getLogger(TITLE)
-hdlr        = logging.FileHandler('/Users/alexis/amcp/upem/metoo/log/{}.log'.format(TITLE))
+hdlr        = logging.FileHandler(DATA_FOLDER + 'log/{}.log'.format(TITLE))
 formatter   = logging.Formatter('%(asctime)s %(levelname)s {} %(message)s '.format(API))
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)

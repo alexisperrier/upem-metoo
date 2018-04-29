@@ -264,14 +264,15 @@ if __name__== '__main__':
                 UNTIL_DATE.strftime('%Y%m%d'),
             )
             data_files = "{0}{1}*.json".format(DATA_FOLDER,word)
-            print("compressing and uploading to google")
+            print("compressing and (uploading to google:PAUSED)")
             # compress
             cmd = "zip -r -j {0} {1}".format(zip_filename,data_files)
             os.system(cmd)
             # send to google storage
-            cmd = "gsutil cp  {} gs://{}/".format(zip_filename, BUCKET)
-            os.system(cmd)
+            # cmd = "gsutil cp  {} gs://{}/".format(zip_filename, BUCKET)
+            # os.system(cmd)
             # delete original json files
+            print("delete original json files")
             cmd = "rm  {}".format(data_files)
             print("delete json files: {}".format(cmd))
             os.system(cmd)

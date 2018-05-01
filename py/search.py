@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
-python search.py --envt sparrow --api all  --since_date 2018-01-01  --until_date 2018-04-25  --zipupload True
+python search.py --envt local --api all  --since_date 2017-01-01  --until_date 2017-04-01  --zipupload True
+
 %run search.py --envt sparrow --api all  --since_date 2018-01-01  --until_date 2018-04-25  --zipupload True
-%run search.py --envt sparrow --api all  --since_date 2018-04-01  --until_date 2018-04-15  --zipupload True
 '''
 
 import requests
@@ -17,8 +17,8 @@ import argparse
 # ----------------------------------------------------------------------------------------------
 #  Params
 # ----------------------------------------------------------------------------------------------
-TITLE        = 'airpollution'
-BUCKET       = 'upem-airpollution'
+TITLE        = 'refugees'
+BUCKET       = 'dmi2018/twitter/'
 
 prsr = argparse.ArgumentParser()
 prsr.add_argument('--api', help='all, hot, warm, cold', default="hot")
@@ -251,13 +251,15 @@ if __name__== '__main__':
             UNTIL_DATE.strftime('%Y%m%d'),
         )
         data_files = "{0}{1}*.json".format(DATA_FOLDER,word)
-        print("compressing and (uploading to google:PAUSED)")
+        print("compressing")
         # compress
         cmd = "zip -r -j {0} {1}".format(zip_filename,data_files)
         os.system(cmd)
         # send to google storage
         if ZIPUPLOAD:
+            print("uploading to google {}".format(BUCKET))
             cmd = "gsutil cp  {} gs://{}/".format(zip_filename, BUCKET)
+            print(cmd)
             os.system(cmd)
         # delete original json files
         print("delete original json files")

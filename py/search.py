@@ -241,7 +241,7 @@ if __name__== '__main__':
         # ----------------------------------------------------------------------
         # Compress files
         # ----------------------------------------------------------------------
-        zip_filename    = "{0}{1}_{2}_{3}_{4}_{5}_to_{6}.zip".format(
+        zip_filename    = "{0}{1}_{2}_{3}_{4}_{5}_to_{6}_json.zip".format(
             DATA_FOLDER,
             word,
             lang,
@@ -258,7 +258,7 @@ if __name__== '__main__':
         # send to google storage
         if ZIPUPLOAD:
             print("uploading to google {}".format(BUCKET))
-            cmd = "gsutil cp  {} gs://{}/".format(zip_filename, BUCKET)
+            cmd = "gsutil cp  {} gs://{}json/".format(zip_filename, BUCKET)
             print(cmd)
             os.system(cmd)
         # delete original json files

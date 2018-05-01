@@ -2,6 +2,7 @@
 '''
 python search.py --envt sparrow --api all  --since_date 2018-01-01  --until_date 2018-04-25  --zipupload True
 %run search.py --envt sparrow --api all  --since_date 2018-01-01  --until_date 2018-04-25  --zipupload True
+%run search.py --envt sparrow --api all  --since_date 2018-04-01  --until_date 2018-04-15  --zipupload True
 '''
 
 import requests
@@ -11,18 +12,17 @@ import pandas as pd
 import datetime
 from dateutil import parser
 import os
-import logging
 import argparse
 
 # ----------------------------------------------------------------------------------------------
 #  Params
 # ----------------------------------------------------------------------------------------------
-TITLE        = 'refugees'
-BUCKET       = 'dmi2018/twitter/'
+TITLE        = 'airpollution'
+BUCKET       = 'upem-airpollution'
 
 prsr = argparse.ArgumentParser()
 prsr.add_argument('--api', help='all, hot, warm, cold', default="hot")
-prsr.add_argument('--zipupload', help='Set to True to zip, upload to google storage and delete original json data', default=False)
+prsr.add_argument('--zipupload', help='Set to True to zip, upload to google storage and delete original json data', default='')
 prsr.add_argument('--envt', help='envt: local or sparrow', default="sparrow")
 prsr.add_argument('--since_date', nargs = '?', const="2017-10-01", default="2017-10-01 00:00:00",
                     help='Since date',
@@ -32,7 +32,7 @@ args = prsr.parse_args()
 
 
 API         = prsr.parse_args().api
-ZIPUPLOAD   = prsr.parse_args().zipupload
+ZIPUPLOAD   = bool(prsr.parse_args().zipupload)
 ENVT        = prsr.parse_args().envt
 SINCE_DATE  = prsr.parse_args().since_date
 SINCE_DATE  = parser.parse(SINCE_DATE)
@@ -61,17 +61,6 @@ print(DATA_FOLDER)
 print(KEYWORD_FILE)
 # STEP = datetime.timedelta(hours =6)
 
-
-# ----------------------------------------------------------------------------------------------
-#  Logger
-# ----------------------------------------------------------------------------------------------
-
-logger      = logging.getLogger(TITLE)
-hdlr        = logging.FileHandler(DATA_FOLDER + 'log/{}.log'.format(TITLE))
-formatter   = logging.Formatter('%(asctime)s %(levelname)s {} %(message)s '.format(API))
-hdlr.setFormatter(formatter)
-logger.addHandler(hdlr)
-logger.setLevel(logging.INFO)
 
 # Attention to not disclose the auth keys on github
 VENDOR_DATASTREAM      = os.environ['VENDOR_DATASTREAM']
@@ -104,8 +93,6 @@ def json_query(start_date, end_date, word, search_mode, lang = None):
         lang_str = ''
     else:
         lang_str = '{ "term":  {"lang": "%s"} },' % lang
-
-
 
     if search_mode == 'hashtag':
         return """
@@ -171,10 +158,10 @@ def to_file(word, lang, start_date, page_count, hit_count):
     f.close()
 
 if __name__== '__main__':
-    logger.info("=="*30)
-    logger.info(API)
-    logger.info(CONTENT_URL)
-    logger.info("SINCE: {} \t UNTIL {}".format(SINCE_DATE, UNTIL_DATE))
+    print("=="*30)
+    print(API)
+    print(CONTENT_URL)
+    print("SINCE: {} \t UNTIL {}".format(SINCE_DATE, UNTIL_DATE))
 
     df = pd.read_csv(KEYWORD_FILE)
     for i,d in df.iterrows():
@@ -185,16 +172,16 @@ if __name__== '__main__':
 
         print("--"*30)
         print("{} {} **{}** {}: ".format(search_mode, lang, word,step))
-        logger.info("--"*30)
-        logger.info("{} {} **{}** {}: ".format(search_mode, lang, word,step))
-        logger.info( json_query(
+        print("--"*30)
+        print("{} {} **{}** {}: ".format(search_mode, lang, word,step))
+        print( json_query(
                         SINCE_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         UNTIL_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         word, search_mode, lang
                     )
                 )
-        logger.info(" ")
-        logger.info("--"*30)
+        print(" ")
+        print("--"*30)
         start_date = SINCE_DATE
         while (start_date < UNTIL_DATE):
             end_date = start_date + step
@@ -215,10 +202,10 @@ if __name__== '__main__':
             try:
                 data    = json.loads(response.content)
             except:
-                logger.error(response.content)
+                print(response.content)
                 raise
             hit_count   = len(data['hits']['hits'])
-            logger.info("=== [{}] Start: {} \t End {}".format(hit_count, start_date, end_date))
+            print("=== [{}] Start: {} \t End {}".format(hit_count, start_date, end_date))
 
             if hit_count > 0:
                 # save to filename
@@ -243,7 +230,7 @@ if __name__== '__main__':
                         to_file(word, lang, start_date, page_count, hit_count)
                         inspect()
                 except:
-                    logger.error(response.content)
+                    print(response.content)
                     print("==="*20)
                     print("ERROR NOT RAISED")
                     print("==="*20)
@@ -254,26 +241,26 @@ if __name__== '__main__':
         # ----------------------------------------------------------------------
         # Compress files
         # ----------------------------------------------------------------------
+        zip_filename    = "{0}{1}_{2}_{3}_{4}_{5}_to_{6}.zip".format(
+            DATA_FOLDER,
+            word,
+            lang,
+            search_mode,
+            API,
+            SINCE_DATE.strftime('%Y%m%d'),
+            UNTIL_DATE.strftime('%Y%m%d'),
+        )
+        data_files = "{0}{1}*.json".format(DATA_FOLDER,word)
+        print("compressing and (uploading to google:PAUSED)")
+        # compress
+        cmd = "zip -r -j {0} {1}".format(zip_filename,data_files)
+        os.system(cmd)
+        # send to google storage
         if ZIPUPLOAD:
-            zip_filename    = "{0}{1}_{2}_{3}_{4}_{5}_to_{6}.zip".format(
-                DATA_FOLDER,
-                word,
-                lang,
-                search_mode,
-                API,
-                SINCE_DATE.strftime('%Y%m%d'),
-                UNTIL_DATE.strftime('%Y%m%d'),
-            )
-            data_files = "{0}{1}*.json".format(DATA_FOLDER,word)
-            print("compressing and (uploading to google:PAUSED)")
-            # compress
-            cmd = "zip -r -j {0} {1}".format(zip_filename,data_files)
+            cmd = "gsutil cp  {} gs://{}/".format(zip_filename, BUCKET)
             os.system(cmd)
-            # send to google storage
-            # cmd = "gsutil cp  {} gs://{}/".format(zip_filename, BUCKET)
-            # os.system(cmd)
-            # delete original json files
-            print("delete original json files")
-            cmd = "rm  {}".format(data_files)
-            print("delete json files: {}".format(cmd))
-            os.system(cmd)
+        # delete original json files
+        print("delete original json files")
+        cmd = "rm  {}".format(data_files)
+        print("delete json files: {}".format(cmd))
+        os.system(cmd)

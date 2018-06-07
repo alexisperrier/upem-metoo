@@ -17,8 +17,8 @@ import argparse
 # ----------------------------------------------------------------------------------------------
 #  Params
 # ----------------------------------------------------------------------------------------------
-TITLE        = 'refugees'
-BUCKET       = 'dmi2018/twitter/'
+TITLE        = 'metoo'
+BUCKET       = 'upem-metoo-june/'
 
 prsr = argparse.ArgumentParser()
 prsr.add_argument('--api', help='all, hot, warm, cold', default="hot")
@@ -36,10 +36,10 @@ ZIPUPLOAD   = bool(prsr.parse_args().zipupload)
 ENVT        = prsr.parse_args().envt
 SINCE_DATE  = prsr.parse_args().since_date
 SINCE_DATE  = parser.parse(SINCE_DATE)
-UNTIL_DATE  = prsr.parse_args().until_date
-UNTIL_DATE  = parser.parse(UNTIL_DATE)
+# UNTIL_DATE  = prsr.parse_args().until_date
 # UNTIL_DATE  = parser.parse("2017-10-31 00:00:00")
-# UNTIL_DATE  = datetime.datetime.now()
+UNTIL_DATE  = datetime.datetime.now()
+UNTIL_DATE  = parser.parse(UNTIL_DATE)
 print(API)
 print(ZIPUPLOAD)
 print(SINCE_DATE)

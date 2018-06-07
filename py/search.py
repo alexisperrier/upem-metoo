@@ -17,8 +17,8 @@ import argparse
 # ----------------------------------------------------------------------------------------------
 #  Params
 # ----------------------------------------------------------------------------------------------
-TITLE        = 'refugees'
-BUCKET       = 'dmi2018/twitter/'
+TITLE        = 'metoo'
+BUCKET       = 'upem-metoo-02/'
 
 prsr = argparse.ArgumentParser()
 prsr.add_argument('--api', help='all, hot, warm, cold', default="hot")

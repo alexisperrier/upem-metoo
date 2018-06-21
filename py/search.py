@@ -6,7 +6,7 @@ python search.py --envt local --api all  --since_date 2017-01-01  --until_date 2
 '''
 
 import requests
-import json
+import json, csv
 import numpy as np
 import pandas as pd
 import datetime
@@ -17,8 +17,10 @@ import argparse
 # ----------------------------------------------------------------------------------------------
 #  Params
 # ----------------------------------------------------------------------------------------------
-TITLE        = 'metoo'
+TITLE        = 'metoo_june'
 BUCKET       = 'upem-metoo-june/'
+KEYWORD_FILE = 'metoo_june_next.csv'
+DELETE_RAW_FILES = False
 
 prsr = argparse.ArgumentParser()
 prsr.add_argument('--api', help='all, hot, warm, cold', default="hot")
@@ -36,9 +38,8 @@ ZIPUPLOAD   = bool(prsr.parse_args().zipupload)
 ENVT        = prsr.parse_args().envt
 SINCE_DATE  = prsr.parse_args().since_date
 SINCE_DATE  = parser.parse(SINCE_DATE)
-# UNTIL_DATE  = prsr.parse_args().until_date
-# UNTIL_DATE  = parser.parse("2017-10-31 00:00:00")
-UNTIL_DATE  = datetime.datetime.now()
+UNTIL_DATE  = prsr.parse_args().until_date
+# UNTIL_DATE  = datetime.datetime.now()
 UNTIL_DATE  = parser.parse(UNTIL_DATE)
 print(API)
 print(ZIPUPLOAD)
@@ -53,14 +54,13 @@ elif (ENVT == 'local'):
 else:
     DATA_FOLDER   = './'
 
-KEYWORD_FILE = "{}{}.csv".format(DATA_FOLDER,TITLE )
+KEYWORD_FILE = "{}../meta_{}/{}".format(DATA_FOLDER,TITLE,KEYWORD_FILE )
 # STEP         = datetime.timedelta(days =7)
 print(TITLE)
 print(BUCKET)
 print(DATA_FOLDER)
 print(KEYWORD_FILE)
 # STEP = datetime.timedelta(hours =6)
-
 
 # Attention to not disclose the auth keys on github
 VENDOR_DATASTREAM      = os.environ['VENDOR_DATASTREAM']
@@ -144,7 +144,7 @@ def inspect():
         print("[first:] {} \n[last:] {}".format(tweets[0], tweets[-1]  ))
 
 def to_file(word, lang, start_date, page_count, hit_count):
-    filename    = DATA_FOLDER + "{0}_{1}_{2}_{3}_{4}_{5}.json".format(
+    json_file    =  "{0}_{1}_{2}_{3}_{4}_{5}.json".format(
         word,
         lang,
         API,
@@ -152,10 +152,65 @@ def to_file(word, lang, start_date, page_count, hit_count):
         str(page_count).zfill(3),
         hit_count
     )
-    print("========= [{}] \n writing {} to {}".format(start_date,hit_count, filename))
-    f=open( filename, "w" );
+    print(json_file)
+
+    f=open( DATA_FOLDER +  json_file, "w" );
     f.write( json.dumps(data['hits']['hits'], indent = 0))
     f.close()
+    # convert to csv
+    csv_file =  json_file.split('/')[-1].split('.')[0] + '.csv'
+    df  = pd.read_json(DATA_FOLDER +  json_file)
+    dd  = pd.DataFrame.from_dict(list(df['_source'].values))
+    dd['src_keyword'] = word
+    dd['src_lang']    = lang
+    dd['csv_file']    = csv_file
+
+    cols  = pd.read_csv(DATA_FOLDER +  '../meta_{}/header.csv'.format(TITLE))
+    # add columns if missing
+    for c in cols.columns:
+        if c not in dd.columns:
+            print("missing column {}".format(c))
+            dd[c] = ''
+
+    dd = dd[cols.columns]
+
+    dd.to_csv(DATA_FOLDER + csv_file, quoting = csv.QUOTE_ALL,
+        header = False,
+        index = False)
+    if hit_count > 10:
+        cmd = "cp {} {}".format(DATA_FOLDER + csv_file, DATA_FOLDER + "bq/")
+        os.system(cmd)
+
+
+    # try:
+    # dd.to_gbq('eu_metoo.twitter_11', project_id = 'upemnumi', if_exists = 'append')
+    # except:
+    #     print("=== bg fail: {}".format(csv_file))
+
+
+
+def compress(format, delete_after_zip):
+    zip_filename    = "{0}{1}_{2}_{3}_{4}_{5}_to_{6}.{7}.zip".format(
+        DATA_FOLDER,
+        word,
+        lang,
+        search_mode,
+        API,
+        SINCE_DATE.strftime('%Y%m%d'),
+        UNTIL_DATE.strftime('%Y%m%d'),
+        format
+    )
+    data_files = "{}{}_{}*.{}".format(DATA_FOLDER,word,lang, format)
+    print("compressing {}".format(data_files))
+    cmd = "zip -r -j {} {}".format(zip_filename,data_files)
+    os.system(cmd)
+
+    if delete_after_zip:
+        print("delete {}".format(data_files))
+        cmd = "rm  {}".format(data_files)
+        os.system(cmd)
+
+    return zip_filename
 
 if __name__== '__main__':
     print("=="*30)
@@ -165,22 +220,22 @@ if __name__== '__main__':
 
     df = pd.read_csv(KEYWORD_FILE)
     for i,d in df.iterrows():
-        word = d.Keyword
+        word = d.keyword
         search_mode = d.nature
         lang = d.lang
         step = datetime.timedelta(days = int(d.step))
 
         print("--"*30)
         print("{} {} **{}** {}: ".format(search_mode, lang, word,step))
-        print("--"*30)
-        print("{} {} **{}** {}: ".format(search_mode, lang, word,step))
-        print( json_query(
-                        SINCE_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                        UNTIL_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                        word, search_mode, lang
-                    )
-                )
-        print(" ")
+        # print("--"*30)
+        # print("{} {} **{}** {}: ".format(search_mode, lang, word,step))
+        # print( json_query(
+        #                 SINCE_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        #                 UNTIL_DATE.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        #                 word, search_mode, lang
+        #             )
+        #         )
+        # print(" ")
         print("--"*30)
         start_date = SINCE_DATE
         while (start_date < UNTIL_DATE):
@@ -210,7 +265,7 @@ if __name__== '__main__':
             if hit_count > 0:
                 # save to filename
                 to_file(word, lang, start_date, page_count, hit_count)
-                inspect()
+                # inspect()
 
             # ----------------------------------------------------------------------
             # Iterate on that first query using the scroll_id
@@ -228,7 +283,7 @@ if __name__== '__main__':
                     scroll_id   = data["_scroll_id"]
                     if hit_count > 0:
                         to_file(word, lang, start_date, page_count, hit_count)
-                        inspect()
+                        # inspect()
                 except:
                     print(response.content)
                     print("==="*20)
@@ -241,28 +296,15 @@ if __name__== '__main__':
         # ----------------------------------------------------------------------
         # Compress files
         # ----------------------------------------------------------------------
-        zip_filename    = "{0}{1}_{2}_{3}_{4}_{5}_to_{6}_json.zip".format(
-            DATA_FOLDER,
-            word,
-            lang,
-            search_mode,
-            API,
-            SINCE_DATE.strftime('%Y%m%d'),
-            UNTIL_DATE.strftime('%Y%m%d'),
-        )
-        data_files = "{0}{1}*.json".format(DATA_FOLDER,word)
-        print("compressing")
-        # compress
-        cmd = "zip -r -j {0} {1}".format(zip_filename,data_files)
-        os.system(cmd)
+        json_zip_filename   = compress('json', True)
+        csv_zip_filename    = compress('csv', True)
+
         # send to google storage
         if ZIPUPLOAD:
             print("uploading to google {}".format(BUCKET))
-            cmd = "gsutil cp  {} gs://{}json/".format(zip_filename, BUCKET)
+            cmd = "gsutil cp  {} gs://{}".format(json_zip_filename, BUCKET)
             print(cmd)
             os.system(cmd)
-        # delete original json files
-        print("delete original json files")
-        cmd = "rm  {}".format(data_files)
-        print("delete json files: {}".format(cmd))
-        os.system(cmd)
+            cmd = "gsutil cp  {} gs://{}".format(csv_zip_filename, BUCKET)
+            print(cmd)
+            os.system(cmd)

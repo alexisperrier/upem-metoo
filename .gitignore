@@ -1,5 +1,6 @@
 */.DS_Store
-.~*.csv
+**/*.csv
+*.csv
 .DS_store
 *.zip
 *.tar.gz
